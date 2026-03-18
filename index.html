@@ -71,6 +71,7 @@
         const Info = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>);
         const HistoryIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>);
         const XIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>);
+        const AwardIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>);
 
         // --- DYNAMIC QUIZ DATA ---
         const CONCEPT_QUESTIONS = {
@@ -124,7 +125,7 @@
           },
           {
             turn: 3, title: 'שלב 3: הלחץ האזורי',
-            description: 'ראש ממשלת ישראל מאיים בפעולה עצמאית. סעודיה מאיימת להעשיר אורניום בעצמה עקב חוסר ביטחון מול הגמוניה איראנית.',
+            description: 'ראש ממשלת ישראל מאיים בפעולה עצמאית. סעודיה מאיימת להעשיר אורניום בעצמה עקב חוסר ביטחון.',
             icon: <Globe className="w-8 h-8 text-blue-500" />,
             choices: [
               { text: 'גיבוי מלא לישראל ואספקת פצצות חודרות-בונקרים', effects: { escalation: +20, legitimacy: -10, domestic: +15, nuclear: -10, oilPrice: +15 }, feedback: 'בנות הברית נרגעו, אך איום התקיפה הקפיץ משמעותית את מחירי הנפט וההסלמה.', concept: { name: 'הרתעה מורחבת (Extended Deterrence)', desc: 'התחייבות להגן על בעלות ברית מאיום חיצוני.' } },
@@ -134,7 +135,7 @@
           },
           {
             turn: 4, title: 'שלב 4: מחירי הנפט בזינוק',
-            description: 'חשש ממלחמה מזניק את מחירי הנפט ויוצר אינפלציה חדה. איראן מאיימת על נתיבי שיט במיצר הורמוז.',
+            description: 'חשש ממלחמה מזניק את מחירי הנפט. אינפלציה פוגעת בארה"ב. איראן מאיימת על נתיבי שיט במיצר הורמוז.',
             icon: <Droplet className="w-8 h-8 text-amber-600" />,
             choices: [
               { text: 'הזרמת נפט מרזרבות ארה"ב להורדת מחירים', effects: { escalation: -5, legitimacy: +5, domestic: +20, nuclear: +10, oilPrice: -25 }, feedback: 'המצב מבית נרגע כלכלית, אך איראן ניצלה את הסחת הדעת כדי לפרוס טילים ימיים.', concept: { name: 'הכלכלה הפוליטית הבינלאומית (IPE)', desc: 'כיצד שיקולים כלכליים מעצבים אסטרטגיה מדינית ולהפך.' } },
@@ -212,6 +213,7 @@
 
         function IranCrisisGame() {
           const [currentScreen, setCurrentScreen] = useState('splash');
+          const [playerName, setPlayerName] = useState('');
           const [gender, setGender] = useState('M'); 
           const [currentTurn, setCurrentTurn] = useState(0);
           const [metrics, setMetrics] = useState(INITIAL_METRICS);
@@ -232,6 +234,11 @@
           const [selectedQuizOption, setSelectedQuizOption] = useState(null);
           const [quizScore, setQuizScore] = useState(0);
           const [quizCompleted, setQuizCompleted] = useState(false);
+
+          // Debriefing and Certificate
+          const [debriefActive, setDebriefActive] = useState(false);
+          const [insight1, setInsight1] = useState('');
+          const [insight2, setInsight2] = useState('');
 
           const EVENTS = getEvents(gender);
           const currentEvent = EVENTS[currentTurn];
@@ -274,7 +281,8 @@
                  setSelectedQuizOption(null);
                  setCurrentQuestionIndex(prev => prev + 1);
              } else {
-                 setQuizCompleted(true);
+                 setQuizActive(false);
+                 setDebriefActive(true); 
              }
           };
 
@@ -282,6 +290,7 @@
             setMetrics(INITIAL_METRICS); setCurrentTurn(0); setShowFeedback(false); setIsGameOver(false);
             setLastChoice(null); setHistory([]); setQuizActive(false); setActiveQuizQuestions([]);
             setCurrentQuestionIndex(0); setSelectedQuizOption(null); setQuizScore(0); setQuizCompleted(false); setIsHistoryOpen(false);
+            setDebriefActive(false); setInsight1(''); setInsight2(''); setPlayerName('');
             setCurrentScreen('splash');
           };
 
@@ -339,12 +348,35 @@
                 {/* --- SPLASH SCREEN --- */}
                 {currentScreen === 'splash' && (
                   <div className="flex flex-col items-center justify-center flex-1 p-4 animate-zoom-in">
-                    <h1 className="text-5xl sm:text-6xl font-black text-white drop-shadow-xl text-center flex flex-col items-center gap-1 mb-8">
+                    <h1 className="text-5xl sm:text-6xl font-black text-white drop-shadow-xl text-center flex flex-col items-center gap-1 mb-6">
                       <span>מבצע</span><span className="text-red-500" dir="ltr">Epic Fury</span>
                     </h1>
+                    
+                    <div className="w-full mb-6">
+                      <input 
+                        type="text" 
+                        placeholder="הכנס/י את שמך כאן..." 
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        className="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-4 text-center text-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 backdrop-blur-sm"
+                      />
+                    </div>
+
                     <div className="w-full flex flex-col gap-3">
-                      <button onClick={() => { setGender('M'); setCurrentScreen('briefing'); }} className="w-full py-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg text-xl shadow-lg border border-red-500">התחל (נשיא)</button>
-                      <button onClick={() => { setGender('F'); setCurrentScreen('briefing'); }} className="w-full py-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg text-xl shadow-lg border border-red-500">התחילי (נשיאה)</button>
+                      <button 
+                        disabled={!playerName.trim()} 
+                        onClick={() => { setGender('M'); setCurrentScreen('briefing'); }} 
+                        className={`w-full py-4 text-white font-bold rounded-lg text-xl border transition-all ${!playerName.trim() ? 'bg-red-900/50 border-red-900/50 opacity-50 cursor-not-allowed' : 'bg-red-700 hover:bg-red-600 border-red-500 shadow-lg hover:scale-105'}`}
+                      >
+                        התחל (נשיא)
+                      </button>
+                      <button 
+                        disabled={!playerName.trim()} 
+                        onClick={() => { setGender('F'); setCurrentScreen('briefing'); }} 
+                        className={`w-full py-4 text-white font-bold rounded-lg text-xl border transition-all ${!playerName.trim() ? 'bg-red-900/50 border-red-900/50 opacity-50 cursor-not-allowed' : 'bg-red-700 hover:bg-red-600 border-red-500 shadow-lg hover:scale-105'}`}
+                      >
+                        התחילי (נשיאה)
+                      </button>
                     </div>
                   </div>
                 )}
@@ -354,7 +386,7 @@
                   <div className="flex flex-col items-center justify-center flex-1 p-4 animate-fade-in custom-scroll">
                     <div className="w-full bg-slate-900/95 border border-slate-700 rounded-xl p-5 text-center shadow-2xl flex flex-col gap-4">
                       <ShieldAlert className="w-10 h-10 text-blue-500 mx-auto" />
-                      <h2 className="text-2xl font-black text-slate-100">{gender==='M'?'ברוך הבא, אדוני הנשיא.':'ברוכה הבאה, הנשיאה.'}</h2>
+                      <h2 className="text-2xl font-black text-slate-100">{gender==='M'?'ברוך הבא, אדוני הנשיא.':'ברוכה הבאה, גבירתי הנשיאה.'}</h2>
                       <p className="text-sm text-slate-300">הוזעקת לחדר המצב עקב משבר בינלאומי.</p>
                       
                       <div className="bg-red-950/40 border border-red-800/50 p-3 rounded text-right">
@@ -377,7 +409,7 @@
                   </div>
                 )}
 
-                {/* --- PLAYING SCREEN --- */}
+                {/* --- PLAYING SCREEN (Zero Scroll Design) --- */}
                 {currentScreen === 'playing' && (
                   <div className="flex flex-col h-full w-full p-2 pt-4 sm:p-4 gap-2 animate-fade-in">
                     
@@ -407,14 +439,16 @@
                     {/* Main Content Area */}
                     <div className="flex flex-col flex-1 bg-slate-900/90 border border-slate-700 rounded-xl overflow-hidden shadow-2xl relative p-3 pb-2">
                       
-                      {isGameOver && !quizActive && !quizCompleted ? (
-                        <div className="flex flex-col items-center justify-center text-center h-full animate-fade-in p-2 custom-scroll overflow-y-auto">
+                      {isGameOver && !quizActive && !debriefActive && !quizCompleted ? (
+                        // סיום המשחק והצגת תוצאה לפני מבדק
+                        <div className="flex flex-col items-center justify-center text-center h-full animate-fade-in p-2">
                           <h2 className={`text-3xl font-black mb-2 ${getEndingDetails().color}`}>{getEndingDetails().title}</h2>
-                          <p className="text-sm sm:text-base text-slate-300 mb-6">{getEndingDetails().desc}</p>
+                          <p className="text-sm text-slate-300 mb-6">{getEndingDetails().desc}</p>
                           <button onClick={startQuiz} className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg">למבדק המודיעיני</button>
                         </div>
-
-                      ) : quizActive && !quizCompleted ? (
+                      
+                      ) : quizActive && !debriefActive && !quizCompleted ? (
+                        // מבדק המושגים
                         <div className="flex flex-col h-full animate-fade-in">
                           <div className="flex items-center justify-between mb-3 border-b border-slate-700 pb-2 shrink-0">
                              <h2 className="text-sm font-bold text-blue-400">מבדק: שאלה {currentQuestionIndex+1}/{activeQuizQuestions.length}</h2>
@@ -469,57 +503,124 @@
                                         </div>
                                     )}
                                     <button onClick={handleNextQuizQuestion} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">
-                                        {currentQuestionIndex < activeQuizQuestions.length - 1 ? 'לשאלה הבאה' : 'סיום מבדק'}
+                                        {currentQuestionIndex < activeQuizQuestions.length - 1 ? 'לשאלה הבאה' : 'מעבר לתחקיר מבצעי'}
                                     </button>
                                 </div>
                             )}
                           </div>
                         </div>
 
+                      ) : debriefActive && !quizCompleted ? (
+                        // מסך תחקיר מבצעי (Debrief)
+                        <div className="flex flex-col h-full animate-fade-in custom-scroll pr-1 pb-1">
+                           <h2 className="text-2xl font-bold text-slate-100 mb-2 mt-2">תחקיר מבצעי: הפקת לקחים</h2>
+                           <p className="text-sm text-slate-300 mb-4">
+                             {gender === 'M' ? 'אדוני הנשיא' : 'גבירתי הנשיאה'}, רגע לפני סגירת התיק והנפקת התעודה הרשמית, עליך לנסח שתי תובנות אסטרטגיות מרכזיות שלמדת מניהול המשבר הנוכחי, לטובת משברים עתידיים.
+                           </p>
+                           
+                           <div className="flex flex-col gap-4 flex-1">
+                              <div className="flex flex-col">
+                                 <label className="text-blue-400 text-xs font-bold mb-1.5 flex items-center gap-1"><BookOpen className="w-3.5 h-3.5"/> תובנה אסטרטגית 1:</label>
+                                 <textarea 
+                                    value={insight1} 
+                                    onChange={(e) => setInsight1(e.target.value)} 
+                                    placeholder="הקלד כאן את התובנה הראשונה..."
+                                    className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none" 
+                                    rows="3"
+                                 ></textarea>
+                              </div>
+                              <div className="flex flex-col">
+                                 <label className="text-blue-400 text-xs font-bold mb-1.5 flex items-center gap-1"><BookOpen className="w-3.5 h-3.5"/> תובנה אסטרטגית 2:</label>
+                                 <textarea 
+                                    value={insight2} 
+                                    onChange={(e) => setInsight2(e.target.value)} 
+                                    placeholder="הקלד כאן את התובנה השנייה..."
+                                    className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none" 
+                                    rows="3"
+                                 ></textarea>
+                              </div>
+                           </div>
+                           
+                           <button 
+                             disabled={insight1.trim() === '' || insight2.trim() === ''} 
+                             onClick={() => setQuizCompleted(true)} 
+                             className={`w-full py-3 mt-4 text-white font-bold rounded-lg shadow-md transition-all ${insight1.trim() && insight2.trim() ? 'bg-blue-600 hover:bg-blue-500' : 'bg-slate-700 opacity-50 cursor-not-allowed'}`}
+                           >
+                             סיום תחקיר וקבלת תעודה
+                           </button>
+                        </div>
+
                       ) : quizCompleted ? (
-                        <div className="flex flex-col items-center justify-center text-center h-full animate-zoom-in p-2">
-                          <CheckCircle className="w-16 h-16 text-green-500 mb-2" />
-                          <h2 className="text-xl font-black mb-2 text-slate-100">הערכה הושלמה</h2>
-                          <div className="text-sm text-slate-300 mb-6">
-                            ציון: <span className="text-2xl font-black text-blue-400 font-mono inline-block ml-1" dir="ltr">{quizScore}/{activeQuizQuestions.length}</span>
+                        // תעודת סיום
+                        <div className="flex flex-col items-center h-full animate-zoom-in p-2 custom-scroll overflow-y-auto">
+                          <AwardIcon className="w-16 h-16 text-yellow-500 mb-2 shrink-0" />
+                          <h2 className="text-2xl font-black mb-1 text-slate-100 uppercase tracking-wide">תעודת הערכה נשיאותית</h2>
+                          <p className="text-sm text-slate-400 mb-4 border-b border-slate-700 pb-2 w-full text-center">
+                            מוענקת ל<strong className="text-slate-200">{playerName}</strong>, {gender === 'M' ? 'נשיא' : 'נשיאת'} ארצות הברית - מבצע Epic Fury
+                          </p>
+                          
+                          <div className="w-full bg-slate-800/80 border border-slate-600 rounded-lg p-4 text-center mb-4 shrink-0">
+                             <div className="text-xs text-slate-400 uppercase tracking-widest mb-1">תוצאת המשבר</div>
+                             <div className={`text-xl font-bold mb-2 ${getEndingDetails().color}`}>{getEndingDetails().title}</div>
+                             <p className="text-xs sm:text-sm text-slate-300 mb-4 px-2">{getEndingDetails().desc}</p>
+                             
+                             <div className="text-xs text-slate-400 uppercase tracking-widest mb-2 border-t border-slate-700 pt-3">מדדים סופיים</div>
+                             <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mb-4">
+                                <span className="bg-slate-900 border border-slate-700 text-red-400 px-2 py-1 rounded text-[10px] sm:text-xs font-mono">הסלמה: {metrics.escalation}%</span>
+                                <span className="bg-slate-900 border border-slate-700 text-blue-400 px-2 py-1 rounded text-[10px] sm:text-xs font-mono">לגיטימציה: {metrics.legitimacy}%</span>
+                                <span className="bg-slate-900 border border-slate-700 text-green-400 px-2 py-1 rounded text-[10px] sm:text-xs font-mono">פנים: {metrics.domestic}%</span>
+                                <span className="bg-slate-900 border border-slate-700 text-purple-400 px-2 py-1 rounded text-[10px] sm:text-xs font-mono">גרעין: {metrics.nuclear}%</span>
+                                <span className="bg-slate-900 border border-slate-700 text-amber-400 px-2 py-1 rounded text-[10px] sm:text-xs font-mono" dir="ltr">נפט: ${metrics.oilPrice}</span>
+                             </div>
+
+                             <div className="text-xs text-slate-400 uppercase tracking-widest mb-1 mt-2 border-t border-slate-700 pt-3">ציון מבדק מושגים אסטרטגיים</div>
+                             <div className="text-3xl font-black text-blue-400 font-mono" dir="ltr">{quizScore}/{activeQuizQuestions.length}</div>
                           </div>
-                          <button onClick={resetGame} className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg">למסך הפתיחה</button>
+
+                          <div className="w-full bg-blue-950/20 border border-blue-900/50 rounded-lg p-4 text-right mb-6 shrink-0">
+                             <h3 className="text-blue-400 font-bold text-sm mb-2">תובנות והנחיות לעתיד שנוסחו על ידי ה{gender === 'M' ? 'נשיא' : 'נשיאה'}:</h3>
+                             <p className="text-sm text-slate-200 mb-2 bg-slate-900/50 p-2 rounded">1. {insight1}</p>
+                             <p className="text-sm text-slate-200 bg-slate-900/50 p-2 rounded">2. {insight2}</p>
+                          </div>
+
+                          <button onClick={resetGame} className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg border border-slate-500 mt-auto shrink-0">
+                            {gender === 'M' ? 'התחל סימולציה מחדש' : 'התחילי סימולציה מחדש'}
+                          </button>
                         </div>
 
                       ) : showFeedback ? (
+                        // מסך חיווי תוצאת החלטה
                         <div className="flex flex-col h-full animate-slide-bottom">
                           <h2 className="text-sm font-bold text-blue-400 mb-2 flex items-center gap-1.5 shrink-0"><Activity className="w-4 h-4"/> תוצאות המהלך</h2>
                           <div className="mb-2 shrink-0">{renderImpactInline(lastChoice.effects)}</div>
-                          <div className="bg-slate-800 p-2.5 rounded border-r-2 border-blue-500 text-xs sm:text-sm text-slate-200 leading-relaxed mb-3 overflow-y-auto custom-scroll">
+                          <div className="bg-slate-800 p-2.5 rounded border-r-2 border-blue-500 text-xs text-slate-200 leading-snug mb-3 overflow-y-auto custom-scroll">
                             {lastChoice.feedback}
                           </div>
-                          <div className="bg-slate-950/60 border border-slate-700 rounded p-3 flex items-start gap-3 mt-auto shrink-0 mb-3">
+                          <div className="bg-slate-950/60 border border-slate-700 rounded p-2.5 flex items-start gap-2 mt-auto shrink-0 mb-3">
                              <BookOpen className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
                              <div>
-                               <h3 className="text-[10px] sm:text-xs text-blue-400 uppercase font-mono">הידעת?</h3>
-                               <h4 className="text-xs sm:text-sm font-bold text-slate-200 mb-0.5">{lastChoice.concept.name}</h4>
-                               <p className="text-[10px] sm:text-xs text-slate-400 leading-tight">{lastChoice.concept.desc}</p>
+                               <h3 className="text-[10px] text-blue-400 uppercase font-mono">הידעת?</h3>
+                               <h4 className="text-xs font-bold text-slate-200 mb-0.5">{lastChoice.concept.name}</h4>
+                               <p className="text-[10px] text-slate-400 leading-tight">{lastChoice.concept.desc}</p>
                              </div>
                           </div>
                           <button onClick={nextStage} className="w-full py-3 bg-slate-700 text-white font-bold rounded-lg border border-slate-600 flex justify-center items-center gap-2 shrink-0">
                             {gender==='M'?'המשך':'המשיכי'} <ChevronLeft className="w-4 h-4" />
                           </button>
                         </div>
-
                       ) : (
-                        <div className="flex flex-col h-full animate-fade-in custom-scroll overflow-y-auto">
-                          <div className="flex items-center gap-3 mb-4 shrink-0">
-                            <div className="p-2 sm:p-3 bg-slate-950 rounded-full border border-slate-800 shrink-0">{currentEvent.icon}</div>
-                            <h2 className="text-lg sm:text-xl font-bold text-slate-100 leading-tight">{currentEvent.title}</h2>
+                        // מסך קבלת ההחלטה (שלבי המשחק)
+                        <div className="flex flex-col h-full animate-fade-in">
+                          <div className="flex items-center gap-3 mb-3 shrink-0">
+                            <div className="p-2 bg-slate-950 rounded-full border border-slate-800">{currentEvent.icon}</div>
+                            <h2 className="text-base sm:text-lg font-bold text-slate-100 leading-tight">{currentEvent.title}</h2>
                           </div>
-                          
-                          <div className="text-sm sm:text-base text-slate-300 leading-relaxed font-serif pr-1 mb-6">
+                          <div className="text-sm sm:text-base text-slate-300 leading-snug pr-1 mb-3">
                             {currentEvent.description}
                           </div>
-                          
-                          <div className="flex flex-col gap-3 shrink-0 mb-2">
+                          <div className="mt-2 flex flex-col gap-2 shrink-0">
                             {currentEvent.choices.map((choice, index) => (
-                              <button key={index} onClick={() => handleChoice(choice)} className="w-full text-right p-3 sm:p-4 bg-slate-800/90 border border-slate-600 rounded-lg flex justify-between items-center group active:bg-slate-700 transition-all">
+                              <button key={index} onClick={() => handleChoice(choice)} className="w-full text-right p-3 sm:p-3.5 bg-slate-800/90 border border-slate-600 rounded flex justify-between items-center group active:bg-slate-700 transition-all">
                                 <span className="text-sm sm:text-base font-semibold text-slate-200 leading-snug pl-2">{choice.text}</span>
                                 <ChevronLeft className="w-4 h-4 text-slate-500 shrink-0" />
                               </button>
