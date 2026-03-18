@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SITUATION ROOM - מבצע Epic Fury</title>
+    
+    <!-- טעינת Tailwind לעיצוב -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- טעינת React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- טעינת Babel כדי לאפשר כתיבת רכיבי React ישירות בדפדפן -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* ייבוא גופן עברי תואם */
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap');
+        
+        html, body {
+            font-family: 'Heebo', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #020617;
+            overflow: hidden; /* מניעת גלילה מוחלטת */
+            width: 100%;
+            height: 100%;
+        }
+
+        #root {
+            height: 100%;
+        }
+
+        /* אנימציות */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes slideInBottom { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .animate-zoom-in { animation: zoomIn 0.5s ease-out forwards; }
+        .animate-slide-bottom { animation: slideInBottom 0.4s ease-out forwards; }
+
+        /* Scrollbar נסתר אך שמיש במקרה חירום */
+        .custom-scroll { overflow-y: auto; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICONS ---
+        const ShieldAlert = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>);
+        const Globe = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>);
+        const Users = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
+        const Zap = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>);
+        const AlertTriangle = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>);
+        const Crosshair = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>);
+        const Briefcase = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>);
+        const Activity = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>);
+        const BookOpen = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>);
+        const ChevronLeft = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="15 18 9 12 15 6"/></svg>);
+        const Droplet = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>);
+        const CheckCircle = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>);
+        const Info = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>);
+        const HistoryIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>);
+        const XIcon = ({className}) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>);
+
+        // --- DYNAMIC QUIZ DATA ---
+        const CONCEPT_QUESTIONS = {
+          'עוצמה רכה (Soft Power)': { question: "מהי 'עוצמה רכה' ביחסים בינלאומיים?", options: ["היכולת להשיג יעדים באמצעות שכנוע, משיכה ושיתוף פעולה", "שימוש בכוח צבאי מוגבל", "סנקציות כלכליות בלבד"], correctIndex: 0 },
+          'לוחמה אסימטרית': { question: "למה מתייחס המושג 'לוחמה אסימטרית'?", options: ["מלחמה בין שתי מעצמות ענק", "שימוש באמצעים לא-קונבנציונליים על ידי צד חלש טכנולוגית", "הסכם שלום שאינו שוויוני"], correctIndex: 1 },
+          'דילמת הביטחון (Security Dilemma)': { question: "מהי 'דילמת הביטחון'?", options: ["צעדים הגנתיים שנתפסים כאיום על ידי היריב וגוררים התחמשות נגדית", "התלבטות של מנהיג בין הפעלת כוח צבאי לסנקציות", "החובה להגן על בעלות ברית"], correctIndex: 0 },
+          'ערוץ אחורי (Backchannel Diplomacy)': { question: "מהו היתרון של דיפלומטיה ב'ערוץ אחורי'?", options: ["מבטיח תמיכת או\"ם", "מאפשר גמישות ומו\"מ ללא לחץ ציבורי ופוליטי", "מחייב מעורבות תקשורתית"], correctIndex: 1 },
+          'משחק על הסף (Brinkmanship)': { question: "מהי אסטרטגיית 'משחק על הסף'?", options: ["נסיגה מוחלטת לעמדות הגנה", "דחיפת משבר בכוונה אל סף עימות כדי לאלץ את היריב לסגת", "מו\"מ ארוך להתרשת היריב"], correctIndex: 1 },
+          'הגמוניה (Hegemony)': { question: "איזה מצב מתאר 'הגמוניה'?", options: ["שוויון מוחלט בין מדינות", "מצב בו מעצמה אחת דומיננטית ויכולה לכפות את רצונה", "פירוק נשק גלובלי"], correctIndex: 1 },
+          'הרתעה מורחבת (Extended Deterrence)': { question: "מהי 'הרתעה מורחבת'?", options: ["פיתוח יכולות צבאיות מקיפות להגנת המולדת", "התחייבות מעצמה להגן על בנות בריתה מאיום חיצון בתגובת נגד", "שימוש בסנקציות במקום כוח"], correctIndex: 1 },
+          'משחק דו-מפלסי (Two-Level Game)': { question: "מה מתארת תיאוריית 'המשחק הדו-מפלסי'?", options: ["ניהול מו\"מ צבאי בים ובאוויר", "הפעלת קואליציות נגד מספר אויבים", "מנהיג המנהל מו\"מ מול מדינות זרות ומול פוליטיקה מבית במקביל"], correctIndex: 2 },
+          'מאזן כוחות (Balance of Power)': { question: "כיצד מושגת יציבות לפי 'מאזן כוחות'?", options: ["פירוק נשק", "בריתות והתחמשות למניעת עליונות מוחלטת של מדינה אחת", "כפיפות מלאה לאו\"ם"], correctIndex: 1 },
+          'הכלכלה הפוליטית הבינלאומית (IPE)': { question: "מהי הנחת היסוד של ה-IPE?", options: ["משברים גיאופוליטיים שזורים בשווקים כלכליים שמשפיעים על החלטות", "ניתוק הכלכלה מפוליטיקה", "סנקציות ככלי דיפלומטי יחיד"], correctIndex: 0 },
+          'חופש השיט (Freedom of Navigation)': { question: "למה מעצמות מגינות צבאית על 'חופש השיט'?", options: ["להבטחת תנועת סחר ומים בינלאומיים ללא איום", "להגנת ספינות תיירות", "לגביית מיסי מעבר"], correctIndex: 0 },
+          'רב-קוטביות (Multipolarity)': { question: "מהי מערכת 'רב-קוטבית'?", options: ["הגמון אחד", "שתי מעצמות על", "יותר משתי מעצמות גדולות המתחרות על השפעה"], correctIndex: 2 },
+          'כפייה (Compellence)': { question: "מה ההבדל בין 'כפייה' ל'הרתעה'?", options: ["כפייה מיועדת לעצור פעולה שכבר החלה, הרתעה מונעת אותה מראש", "אין הבדל", "הרתעה היא צבאית וכפייה כלכלית"], correctIndex: 0 },
+          'ניהול משברים (Crisis Management)': { question: "מהי מטרת 'ניהול משברים' צבאיים?", options: ["הכרעה מהירה", "שליטה ברמות אלימות ופתיחת תקשורת למניעת מלחמה כוללת", "העברת הטיפול להאג"], correctIndex: 1 },
+          'פיוס (Appeasement)': { question: "מהי מדיניות 'פיוס'?", options: ["מתן ויתורים למדינה תוקפנית בתקווה להימנע ממלחמה", "שימוש בכוח מאסיבי", "חתימה על ברית הגנה"], correctIndex: 0 },
+          'אמינות האיום (Threat Credibility)': { question: "מתי איום נחשב 'אמין'?", options: ["כשהוא פומבי", "כשיש גם יכולת צבאית וגם נכונות פוליטית לממש אותו", "כשהוא מלווה בהצעת סיוע"], correctIndex: 1 },
+          'דיפלומטיית פסגה (Summit Diplomacy)': { question: "מהו החיסרון ב'דיפלומטיית פסגה' (מפגש מנהיגים)?", options: ["מחייבת משאל עם", "אם נכשלת - אין דרג גבוה יותר לפנות אליו להצלת המצב", "דורשת אישור או\"ם"], correctIndex: 1 },
+          'הכלה (Containment)': { question: "מהי אסטרטגיית 'הכלה'?", options: ["מניעת התפשטות השפעת היריב למדינות נוספות ללא מלחמה ישירה לחיסולו", "כיבוש והפלת משטר", "התעלמות מהאויב"], correctIndex: 0 },
+          'תקיפה מונעת (Preventive Strike)': { question: "במה שונה 'תקיפה מונעת' ממקדימה?", options: ["מבוצעת בסייבר", "תקיפת איום עתידי מתהווה (גרעין), להבדיל מאיום מיידי וברור", "מחייבת הצבעת או\"ם"], correctIndex: 1 },
+          'הסכם ביניים טקטי': { question: "מתי משתמשים ב'הסכם ביניים טקטי'?", options: ["לפתרון שורש הסכסוך לעד", "להקפאת מצב, קניית זמן ומניעת הידרדרות מבלי לפתור את הליבה", "לאחר הכנעה צבאית"], correctIndex: 1 },
+          'תיאוריה ליברלית-מוסדית': { question: "כיצד יושג שלום לפי התיאוריה הליברלית-מוסדית?", options: ["חימוש אגרסיבי", "מוסדות משותפים (כמו או\"ם) והסכמים המשנים אינטרסים של מדינות", "בידוד מדיני"], correctIndex: 1 },
+          'ריאליזם דפנסיבי': { question: "מדוע לא ממהרים לתקוף מדינה עם נשק גרעיני (לפי ריאליזם דפנסיבי)?", options: ["אמון בכוונות טובות", "מדינות שואפות להישרדות ויעדיפו לאזן את האיום במקום להסתכן בהשמדה מתקיפה", "נשק גרעיני אינו איום"], correctIndex: 1 }
+        };
+
+        // --- GAME DATA ---
+        const INITIAL_METRICS = { escalation: 30, legitimacy: 70, domestic: 60, nuclear: 65, oilPrice: 85 };
+
+        const getEvents = (gender) => [
+          {
+            turn: 1, title: 'שלב 1: האיראנים מתקרבים לפצצה גרעינית',
+            description: 'איראן החלה בהעשרת אורניום ל-90% בפורדו. אם לא נפעל, יהיה להם חומר בקיע תוך שבועות. נדרשת תגובה מיידית.',
+            icon: <AlertTriangle className="w-8 h-8 text-red-500" />,
+            choices: [
+              { text: 'סנקציות כלכליות דרך מועצת הביטחון', effects: { escalation: -5, legitimacy: +15, domestic: -10, nuclear: +10, oilPrice: +5 }, feedback: `האו"ם מגיב לאט. איראן ממשיכה להעשיר. תפיסת ${gender==='M'?'הנשיא כחלש':'הנשיאה כחלשה'} גוברת מבית.`, concept: { name: 'עוצמה רכה (Soft Power)', desc: 'השגת יעדים באמצעות שכנוע ושיתוף פעולה בינלאומי.' } },
+              { text: 'מתקפת סייבר התקפית חשאית', effects: { escalation: +10, legitimacy: -5, domestic: +5, nuclear: -10, oilPrice: +2 }, feedback: 'הצנטריפוגות עוכבו, אך איראן העלתה כוננות צבאית מחשש לתקיפה רחבה.', concept: { name: 'לוחמה אסימטרית', desc: 'שימוש באמצעים לא קונבנציונליים לעקיפת עוצמה צבאית.' } },
+              { text: 'קידום כוח ימי ואיום פומבי', effects: { escalation: +20, legitimacy: -15, domestic: +15, nuclear: -5, oilPrice: +15 }, feedback: 'הפגנת הכוח הרתיעה זמנית, אך השווקים בפאניקה וההסלמה זינקה.', concept: { name: 'דילמת הביטחון (Security Dilemma)', desc: 'צעד הגנתי נתפס כאיום וגורר התחמשות והסלמה מעגלית.' } }
+            ]
+          },
+          {
+            turn: 2, title: 'שלב 2: משבר הפקחים',
+            description: 'איראן גירשה הבוקר את פקחי סבא"א, שבלעדיהם המודיעין מאבד את יכולת המעקב אחר הרכבת פצצה צבאית.',
+            icon: <Briefcase className="w-8 h-8 text-slate-500" />,
+            choices: [
+              { text: 'הצעה חשאית בעומאן להחזרת פקחים תמורת הקלות', effects: { escalation: -10, legitimacy: +5, domestic: -15, nuclear: +5, oilPrice: -5 }, feedback: 'הערוץ החשאי הרגיע שווקים, אך הדלפות עוררו זעם בקונגרס.', concept: { name: 'ערוץ אחורי (Backchannel Diplomacy)', desc: 'מו"מ חשאי המאפשר גמישות ללא לחץ ציבורי.' } },
+              { text: 'אולטימטום פומבי או צעדים צבאיים', effects: { escalation: +15, legitimacy: -5, domestic: +10, nuclear: 0, oilPrice: +12 }, feedback: 'האיום הציבורי דחק את איראן לפינה וגרם לזינוק במחירי האנרגיה.', concept: { name: 'משחק על הסף (Brinkmanship)', desc: 'דחיפת המשבר לסף עימות כדי לאלץ את היריב לסגת.' } },
+              { text: 'סנקציות על חברות סיניות הסוחרות עם איראן', effects: { escalation: +5, legitimacy: -20, domestic: 0, nuclear: -5, oilPrice: +8 }, feedback: 'הכלכלה האיראנית נפגעה, אך שימוש בכלכלת ארה"ב כנשק פגע בלגיטימציה בסין ואירופה.', concept: { name: 'הגמוניה (Hegemony)', desc: 'מעצמה המשתמשת בכוחה הכלכלי כדי לכפות את רצונה.' } }
+            ]
+          },
+          {
+            turn: 3, title: 'שלב 3: הלחץ האזורי',
+            description: 'ראש ממשלת ישראל מאיים בפעולה עצמאית. סעודיה מאיימת להעשיר אורניום בעצמה עקב חוסר ביטחון מול הגמוניה איראנית.',
+            icon: <Globe className="w-8 h-8 text-blue-500" />,
+            choices: [
+              { text: 'גיבוי מלא לישראל ואספקת פצצות חודרות-בונקרים', effects: { escalation: +20, legitimacy: -10, domestic: +15, nuclear: -10, oilPrice: +15 }, feedback: 'בנות הברית נרגעו, אך איום התקיפה הקפיץ משמעותית את מחירי הנפט וההסלמה.', concept: { name: 'הרתעה מורחבת (Extended Deterrence)', desc: 'התחייבות להגן על בעלות ברית מאיום חיצוני.' } },
+              { text: 'דרישה פומבית מישראל להימנע מתקיפה', effects: { escalation: -15, legitimacy: +15, domestic: -20, nuclear: +15, oilPrice: -4 }, feedback: 'אירופה תומכת בך, אך הקונגרס מבית זועם ובנות הברית חשות הפקרה.', concept: { name: 'משחק דו-מפלסי (Two-Level Game)', desc: 'ניהול מו"מ בחוץ תוך התמודדות עם פוליטיקה מבית.' } },
+              { text: 'ברית הגנה היסטורית עם סעודיה', effects: { escalation: +10, legitimacy: 0, domestic: -5, nuclear: +5, oilPrice: -8 }, feedback: 'הברית הבטיחה רציפות נפט, אך איראן רואה בכך איום ישיר ומגבירה כוננות.', concept: { name: 'מאזן כוחות (Balance of Power)', desc: 'יצירת בריתות כדי למנוע דומיננטיות של מדינה אחת.' } }
+            ]
+          },
+          {
+            turn: 4, title: 'שלב 4: מחירי הנפט בזינוק',
+            description: 'חשש ממלחמה מזניק את מחירי הנפט ויוצר אינפלציה חדה. איראן מאיימת על נתיבי שיט במיצר הורמוז.',
+            icon: <Droplet className="w-8 h-8 text-amber-600" />,
+            choices: [
+              { text: 'הזרמת נפט מרזרבות ארה"ב להורדת מחירים', effects: { escalation: -5, legitimacy: +5, domestic: +20, nuclear: +10, oilPrice: -25 }, feedback: 'המצב מבית נרגע כלכלית, אך איראן ניצלה את הסחת הדעת כדי לפרוס טילים ימיים.', concept: { name: 'הכלכלה הפוליטית הבינלאומית (IPE)', desc: 'כיצד שיקולים כלכליים מעצבים אסטרטגיה מדינית ולהפך.' } },
+              { text: 'ליווי צבאי אמריקאי למכליות נפט', effects: { escalation: +20, legitimacy: -5, domestic: +5, nuclear: 0, oilPrice: -10 }, feedback: 'הנוכחות הצבאית הבטיחה סחר, אך חיכוך יומיומי בים העלה את הסיכון לתקרית אש.', concept: { name: 'חופש השיט (Freedom of Navigation)', desc: 'שמירת צירי מסחר פתוחים, לעיתים באמצעות כוח.' } },
+              { text: 'פנייה לסין לריסון איראן', effects: { escalation: -10, legitimacy: +15, domestic: -10, nuclear: +5, oilPrice: -15 }, feedback: 'סין הרגיעה את השוק, אך המהלך נתפס מבית כמסירת ההגמוניה במזה"ת לבייג\'ינג.', concept: { name: 'רב-קוטביות (Multipolarity)', desc: 'מערכת בה מספר מעצמות מתחרות על השפעה.' } }
+            ]
+          },
+          {
+            turn: 5, title: 'שלב 5: תקרית טקטית במפרץ',
+            description: 'סירות איראניות חמושות מקיפות משחתת אמריקאית. מפקד המשחתת מבקש אישור ירי.',
+            icon: <Crosshair className="w-8 h-8 text-orange-500" />,
+            choices: [
+              { text: 'אישור אש נרחבת והשמדת הסירות', effects: { escalation: +30, legitimacy: -15, domestic: +15, nuclear: -5, oilPrice: +25 }, feedback: 'איראן הוכתה בהלם, אך אירופה מגנה והאזור צועד בביטחה למלחמה רחבה.', concept: { name: 'כפייה (Compellence)', desc: 'שימוש בכוח כדי לגרום ליריב להפסיק פעולה שהחל.' } },
+              { text: 'אישור ירי אזהרה למים בלבד', effects: { escalation: +10, legitimacy: +5, domestic: -5, nuclear: +5, oilPrice: +5 }, feedback: 'מלחמה נמנעה, אך איראן מציגה זאת כניצחון ונסיגה אמריקאית מול איומים.', concept: { name: 'ניהול משברים (Crisis Management)', desc: 'שליטה ברמות האלימות למניעת הידרדרות בלתי רצויה.' } },
+              { text: 'הוראה לניתוק מגע ונסיגה', effects: { escalation: -15, legitimacy: -10, domestic: -25, nuclear: +15, oilPrice: -5 }, feedback: 'ההסלמה ירדה, אך שידור הנסיגה בעולם דחף את איראן להאיץ את תוכנית הגרעין באין מפריע.', concept: { name: 'פיוס (Appeasement)', desc: 'מתן ויתורים טקטיים ליריב כדי להימנע מעימות.' } }
+            ]
+          },
+          {
+            turn: 6, title: 'שלב 6: חלון ההזדמנויות נסגר',
+            description: 'מודיעין: איראן מעבירה אורניום מועשר להרכבת מתקן נפץ. ישראל מכריזה גיוס מילואים ומתקרבת לפעולה קיומית.',
+            icon: <Zap className="w-8 h-8 text-red-600" />,
+            choices: [
+              { text: 'הכנות לתקיפה: פינוי שגרירויות במזה"ת', effects: { escalation: +30, legitimacy: -10, domestic: +5, nuclear: 0, oilPrice: +30 }, feedback: 'שווקי האנרגיה קורסים בציפייה למלחמה, איראן מבינה שהאיום אמיתי ושולחת שדרי הפסקת אש.', concept: { name: 'אמינות האיום (Threat Credibility)', desc: 'הרתעה עובדת כשלאויב ברור שיש נכונות ויכולת תקיפה.' } },
+              { text: 'פגישת פסגה דחופה עם נשיא איראן בז׳נבה', effects: { escalation: -20, legitimacy: +20, domestic: -15, nuclear: +10, oilPrice: -20 }, feedback: 'הפסגה שוברת שיאי לגיטימציה, אך איראן מנצלת את זמן השיחות להשלמת רכיבים חשאיים.', concept: { name: 'דיפלומטיית פסגה (Summit Diplomacy)', desc: 'מפגש מנהיגים - יעיל אך נטול רשת ביטחון במקרה של כישלון.' } },
+              { text: 'איום חשאי בהטלת סגר ימי מוחלט על איראן', effects: { escalation: 0, legitimacy: 0, domestic: -10, nuclear: +20, oilPrice: +5 }, feedback: 'איראן מפרשת את ההימנעות מתקיפה כאות חולשה וממשיכה את הפיתוח מתחת לרדאר.', concept: { name: 'הכלה (Containment)', desc: 'מניעת התפשטות היריב ללא עימות צבאי ישיר להפלתו.' } }
+            ]
+          },
+          {
+            turn: 7, title: 'שלב 7: צומת ההכרעה',
+            description: `חומר הבקיע האיראני מוכן. המזרח התיכון על סף רתיחה. עליך לקבל החלטה סופית שתקבע את המורשת ${gender==='M'?'שלך':'שלך'}.`,
+            icon: <ShieldAlert className="w-8 h-8 text-slate-800" />,
+            choices: [
+              { text: 'תקיפה מונעת כוללת להשמדת מתקני הגרעין', effects: { escalation: +40, legitimacy: -30, domestic: +10, nuclear: -80, oilPrice: +60 }, feedback: 'הפצצה נבלמה, אך איראן מבעירה את מיצר הורמוז ומחיר מלחמה נגבה.', concept: { name: 'תקיפה מונעת (Preventive Strike)', desc: 'השמדת איום עתידי (טרם הבשיל) באמצעות כוח צבאי.' } },
+              { text: 'הסכם ביניים: הקפאה תמורת הפשרת כספים בסיסית', effects: { escalation: -15, legitimacy: +10, domestic: -5, nuclear: -10, oilPrice: -15 }, feedback: 'הושג שקט זמני והכלכלה ניצלה, למרות שאיראן נותרה קרובה מאוד לסף הגרעיני.', concept: { name: 'הסכם ביניים טקטי', desc: 'הקפאת המצב למניעת הידרדרות ללא פתרון בעיות השורש.' } },
+              { text: 'חזרה מלאה להסכם הגרעין: פיקוח הדוק תמורת הסרת סנקציות', effects: { escalation: -30, legitimacy: +25, domestic: -20, nuclear: -30, oilPrice: -35 }, feedback: 'העולם מברך והנפט צונח, אך בעלות הברית מרגישות נבגדות מהסרת הלחץ.', concept: { name: 'תיאוריה ליברלית-מוסדית', desc: 'פתרון סכסוכים דרך מוסדות בינלאומיים והסכמים משותפים.' } },
+              { text: 'הכלה והרתעה: השלמה עם איראן גרעינית', effects: { escalation: -10, legitimacy: -15, domestic: -30, nuclear: +25, oilPrice: +15 }, feedback: 'מלחמה נמנעה, אך ארה"ב נדרשת לשנות אסטרטגיה מול מזרח תיכון גרעיני וזועם.', concept: { name: 'ריאליזם דפנסיבי', desc: 'העדפת איזון כוחות (התרעה הדדית) על פני פתיחה במלחמה יזומה.' } }
+            ]
+          }
+        ];
+
+        // --- COMPONENTS ---
+        // Pill Metric - Compact design for top bar
+        const MetricPill = ({ label, value, colorClass, icon: Icon, unit = "%", dangerThreshold, invertWarning, onClick }) => {
+          let percentage = Math.max(0, Math.min(100, (value / (unit==='$'?200:100)) * 100));
+          let isDanger = dangerThreshold ? (invertWarning ? value < dangerThreshold : value > dangerThreshold) : (invertWarning ? percentage < 30 : percentage > 70);
+          
+          return (
+            <button 
+              onClick={() => onClick({label, desc: label==="הסלמה"?"סיכון למלחמה כוללת":label==="לגיטימציה"?"תמיכת הקהילה הבינלאומית":label==="פנים"?"גיבוי הקונגרס ודעת הקהל":label==="גרעין"?"המרחק של איראן מפצצה גרעינית":"השפעה ישירה על יוקר המחיה מבית"})}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-0.5 rounded border transition-all ${isDanger ? 'bg-red-950/60 border-red-500/60 animate-pulse' : 'bg-slate-800/80 border-slate-700/80 hover:bg-slate-700'}`}
+            >
+              <div className="flex items-center gap-1">
+                <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${colorClass}`} />
+                <span className="font-mono text-xs sm:text-sm font-bold text-slate-200" dir="ltr">{unit==='$'?'$':''}{value}{unit==='%'?'%':''}</span>
+              </div>
+              <span className="text-[10px] text-slate-400 whitespace-nowrap mt-[1px] font-medium">{label}</span>
+            </button>
+          );
+        };
+
+        // Modal Component
+        const Modal = ({ title, onClose, children }) => (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+             <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-zoom-in">
+                <div className="flex justify-between items-center p-4 border-b border-slate-800 bg-slate-950/50">
+                   <h3 className="font-bold text-slate-200">{title}</h3>
+                   <button onClick={onClose} className="text-slate-400 hover:text-white p-1"><XIcon className="w-5 h-5"/></button>
+                </div>
+                <div className="p-4 overflow-y-auto custom-scroll flex-1">
+                   {children}
+                </div>
+             </div>
+          </div>
+        );
+
+        function IranCrisisGame() {
+          const [currentScreen, setCurrentScreen] = useState('splash');
+          const [gender, setGender] = useState('M'); 
+          const [currentTurn, setCurrentTurn] = useState(0);
+          const [metrics, setMetrics] = useState(INITIAL_METRICS);
+          const [history, setHistory] = useState([]);
+          
+          const [showFeedback, setShowFeedback] = useState(false);
+          const [lastChoice, setLastChoice] = useState(null);
+          const [isGameOver, setIsGameOver] = useState(false);
+          
+          // Modals state
+          const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+          const [activeMetricInfo, setActiveMetricInfo] = useState(null);
+
+          // Quiz state
+          const [quizActive, setQuizActive] = useState(false);
+          const [activeQuizQuestions, setActiveQuizQuestions] = useState([]);
+          const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+          const [selectedQuizOption, setSelectedQuizOption] = useState(null);
+          const [quizScore, setQuizScore] = useState(0);
+          const [quizCompleted, setQuizCompleted] = useState(false);
+
+          const EVENTS = getEvents(gender);
+          const currentEvent = EVENTS[currentTurn];
+
+          const handleChoice = (choice) => {
+            setHistory(prev => [...prev, { turn: currentEvent.turn, title: currentEvent.title, choiceText: choice.text, conceptName: choice.concept.name }]);
+            const newMetrics = {
+              escalation: Math.max(0, Math.min(100, metrics.escalation + choice.effects.escalation)),
+              legitimacy: Math.max(0, Math.min(100, metrics.legitimacy + choice.effects.legitimacy)),
+              domestic: Math.max(0, Math.min(100, metrics.domestic + choice.effects.domestic)),
+              nuclear: Math.max(0, Math.min(100, metrics.nuclear + choice.effects.nuclear)),
+              oilPrice: Math.max(20, Math.min(250, metrics.oilPrice + choice.effects.oilPrice)),
+            };
+            setMetrics(newMetrics);
+            setLastChoice(choice);
+            setShowFeedback(true);
+          };
+
+          const nextStage = () => {
+            setShowFeedback(false);
+            if (currentTurn >= EVENTS.length - 1) setIsGameOver(true);
+            else setCurrentTurn(prev => prev + 1);
+          };
+
+          const startQuiz = () => {
+             const uniqueConcepts = [...new Set(history.map(h => h.conceptName))].filter(name => CONCEPT_QUESTIONS[name]);
+             for (let i = uniqueConcepts.length - 1; i > 0; i--) {
+                 const j = Math.floor(Math.random() * (i + 1));
+                 [uniqueConcepts[i], uniqueConcepts[j]] = [uniqueConcepts[j], uniqueConcepts[i]];
+             }
+             setActiveQuizQuestions(uniqueConcepts.slice(0, 4).map(c => CONCEPT_QUESTIONS[c]));
+             setQuizActive(true);
+          };
+
+          const handleNextQuizQuestion = () => {
+             if (selectedQuizOption === activeQuizQuestions[currentQuestionIndex].correctIndex) {
+                 setQuizScore(prev => prev + 1);
+             }
+             if (currentQuestionIndex < activeQuizQuestions.length - 1) {
+                 setSelectedQuizOption(null);
+                 setCurrentQuestionIndex(prev => prev + 1);
+             } else {
+                 setQuizCompleted(true);
+             }
+          };
+
+          const resetGame = () => {
+            setMetrics(INITIAL_METRICS); setCurrentTurn(0); setShowFeedback(false); setIsGameOver(false);
+            setLastChoice(null); setHistory([]); setQuizActive(false); setActiveQuizQuestions([]);
+            setCurrentQuestionIndex(0); setSelectedQuizOption(null); setQuizScore(0); setQuizCompleted(false); setIsHistoryOpen(false);
+            setCurrentScreen('splash');
+          };
+
+          const renderImpactInline = (effects) => {
+            const labels = { escalation: 'הסלמה', legitimacy: 'לגיטימציה', domestic: 'פנים', nuclear: 'גרעין', oilPrice: 'נפט' };
+            return (
+              <div className="flex flex-wrap gap-1.5 justify-center">
+                {Object.entries(effects).map(([key, val]) => {
+                  if (val === 0) return null;
+                  const isPos = (key === 'legitimacy' || key === 'domestic') ? val > 0 : val < 0;
+                  return (
+                    <span key={key} className={`text-[10px] sm:text-xs font-mono font-bold px-1.5 py-0.5 rounded border ${isPos ? 'bg-green-900/30 text-green-400 border-green-700/50' : 'bg-red-900/30 text-red-400 border-red-700/50'}`}>
+                      {labels[key]} <span dir="ltr">{val>0?'+':''}{val}{key==='oilPrice'?'$':''}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            );
+          };
+
+          const getEndingDetails = () => {
+            if (metrics.nuclear >= 90) return { title: 'איראן גרעינית', desc: 'חציית קו אדום והשגת פצצה. מעמד ההגמוניה של ארה"ב ספג מכה היסטורית.', color: 'text-purple-400' };
+            if (metrics.escalation >= 85 || metrics.oilPrice >= 150) return { title: metrics.oilPrice>=150?'משבר כלכלי גלובלי':'מלחמה אזורית הרסנית', desc: metrics.oilPrice>=150?`מחיר הנפט זינק ל-${metrics.oilPrice}$ וריסק את הכלכלה.`:'ההסלמה יצאה משליטה למלחמה ישירה והרסנית.', color: 'text-red-500' };
+            if (metrics.legitimacy >= 65 && metrics.nuclear < 80 && metrics.oilPrice < 100) return { title: 'הצלחה דיפלומטית-מוסדית', desc: 'הכלת המשבר דרך כלים דיפלומטיים. הפצצה עוכבה ללא מלחמה.', color: 'text-green-400' };
+            return { title: 'הסטטוס קוו', desc: 'איראן כמדינת סף. נמנעת ממלחמה כוללת, אך האזור דורש הרתעה מתמדת.', color: 'text-slate-300' };
+          };
+
+          return (
+            <div className="h-full w-full bg-slate-950 flex flex-col overflow-hidden relative" dir="rtl" style={{ backgroundImage: 'url("https://pic1.calcalist.co.il/PicServer3/2017/01/22/697914/20.jpg")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+              <div className="absolute inset-0 bg-slate-950/70 z-0"></div>
+
+              {/* Modals */}
+              {activeMetricInfo && (
+                <Modal title={activeMetricInfo.label} onClose={() => setActiveMetricInfo(null)}>
+                   <p className="text-slate-300 text-sm leading-relaxed text-center">{activeMetricInfo.desc}</p>
+                </Modal>
+              )}
+
+              {isHistoryOpen && (
+                <Modal title="יומן פעולות (Action Log)" onClose={() => setIsHistoryOpen(false)}>
+                   {history.length === 0 ? <p className="text-center text-slate-500 text-sm py-4">אין היסטוריה עדיין.</p> : 
+                    <div className="flex flex-col gap-2">
+                      {history.map((h, i) => (
+                        <div key={i} className="bg-slate-800/60 p-2.5 rounded border border-slate-700 text-sm">
+                          <div className="text-[10px] text-blue-400 font-mono mb-1">שלב {h.turn}: {h.title}</div>
+                          <div className="text-slate-300 text-xs">{h.choiceText}</div>
+                        </div>
+                      ))}
+                    </div>}
+                </Modal>
+              )}
+
+              <div className="relative z-10 flex flex-col h-full w-full max-w-lg mx-auto overflow-hidden">
+                
+                {/* --- SPLASH SCREEN --- */}
+                {currentScreen === 'splash' && (
+                  <div className="flex flex-col items-center justify-center flex-1 p-4 animate-zoom-in">
+                    <h1 className="text-5xl sm:text-6xl font-black text-white drop-shadow-xl text-center flex flex-col items-center gap-1 mb-8">
+                      <span>מבצע</span><span className="text-red-500" dir="ltr">Epic Fury</span>
+                    </h1>
+                    <div className="w-full flex flex-col gap-3">
+                      <button onClick={() => { setGender('M'); setCurrentScreen('briefing'); }} className="w-full py-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg text-xl shadow-lg border border-red-500">התחל (נשיא)</button>
+                      <button onClick={() => { setGender('F'); setCurrentScreen('briefing'); }} className="w-full py-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg text-xl shadow-lg border border-red-500">התחילי (נשיאה)</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* --- BRIEFING SCREEN --- */}
+                {currentScreen === 'briefing' && (
+                  <div className="flex flex-col items-center justify-center flex-1 p-4 animate-fade-in custom-scroll">
+                    <div className="w-full bg-slate-900/95 border border-slate-700 rounded-xl p-5 text-center shadow-2xl flex flex-col gap-4">
+                      <ShieldAlert className="w-10 h-10 text-blue-500 mx-auto" />
+                      <h2 className="text-2xl font-black text-slate-100">{gender==='M'?'ברוך הבא, אדוני הנשיא.':'ברוכה הבאה, הנשיאה.'}</h2>
+                      <p className="text-sm text-slate-300">הוזעקת לחדר המצב עקב משבר בינלאומי.</p>
+                      
+                      <div className="bg-red-950/40 border border-red-800/50 p-3 rounded text-right">
+                        <h3 className="text-red-400 font-bold text-sm flex items-center gap-1 mb-1"><Crosshair className="w-4 h-4" /> המטרה:</h3>
+                        <p className="text-xs text-slate-300">מניעת איראן מגרעין תוך הימנעות ממלחמה כוללת.</p>
+                      </div>
+
+                      <div className="bg-slate-950/60 p-3 rounded border border-slate-800 text-right text-xs">
+                        <p className="font-bold text-slate-300 mb-1.5">המדדים שמשפיעים על המשחק:</p>
+                        <div className="grid grid-cols-2 gap-y-1.5 text-slate-400">
+                          <span><span className="text-red-400 font-bold">הסלמה:</span> סכנת מלחמה</span>
+                          <span><span className="text-purple-400 font-bold">התגרענות:</span> המרחק מפצצה</span>
+                          <span><span className="text-blue-400 font-bold">לגיטימציה:</span> גיבוי עולמי</span>
+                          <span><span className="text-amber-500 font-bold">נפט:</span> מחיר הכלכלה</span>
+                        </div>
+                      </div>
+
+                      <button onClick={() => setCurrentScreen('playing')} className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg text-lg">כניסה לחדר המצב</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* --- PLAYING SCREEN --- */}
+                {currentScreen === 'playing' && (
+                  <div className="flex flex-col h-full w-full p-2 pt-4 sm:p-4 gap-2 animate-fade-in">
+                    
+                    {/* Header */}
+                    <div className="flex justify-between items-center shrink-0 px-1">
+                      <div>
+                        <h1 className="text-xl font-black tracking-widest text-slate-200">SITUATION ROOM</h1>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className={`w-2 h-2 rounded-full ${metrics.escalation > 70 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+                          <span className="text-[10px] font-mono text-slate-400">TURN {Math.min(currentTurn + 1, 7)}/7</span>
+                        </div>
+                      </div>
+                      <button onClick={() => setIsHistoryOpen(true)} className="flex items-center gap-1.5 bg-slate-800 border border-slate-600 px-2 py-1.5 rounded hover:bg-slate-700 text-slate-300 text-xs font-bold">
+                        <HistoryIcon className="w-3.5 h-3.5"/> יומן
+                      </button>
+                    </div>
+
+                    {/* Compact Metrics Row */}
+                    <div className="flex w-full gap-1 shrink-0">
+                      <MetricPill onClick={setActiveMetricInfo} label="הסלמה" value={metrics.escalation} colorClass="text-red-500" icon={Zap} />
+                      <MetricPill onClick={setActiveMetricInfo} label="לגיטימציה" value={metrics.legitimacy} invertWarning colorClass="text-blue-500" icon={Globe} />
+                      <MetricPill onClick={setActiveMetricInfo} label="פנים" value={metrics.domestic} invertWarning colorClass="text-green-500" icon={Users} />
+                      <MetricPill onClick={setActiveMetricInfo} label="גרעין" value={metrics.nuclear} colorClass="text-purple-500" icon={Activity} />
+                      <MetricPill onClick={setActiveMetricInfo} label="נפט" value={metrics.oilPrice} unit="$" dangerThreshold={130} colorClass="text-amber-500" icon={Droplet} />
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="flex flex-col flex-1 bg-slate-900/90 border border-slate-700 rounded-xl overflow-hidden shadow-2xl relative p-3 pb-2">
+                      
+                      {isGameOver && !quizActive && !quizCompleted ? (
+                        <div className="flex flex-col items-center justify-center text-center h-full animate-fade-in p-2 custom-scroll overflow-y-auto">
+                          <h2 className={`text-3xl font-black mb-2 ${getEndingDetails().color}`}>{getEndingDetails().title}</h2>
+                          <p className="text-sm sm:text-base text-slate-300 mb-6">{getEndingDetails().desc}</p>
+                          <button onClick={startQuiz} className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg">למבדק המודיעיני</button>
+                        </div>
+
+                      ) : quizActive && !quizCompleted ? (
+                        <div className="flex flex-col h-full animate-fade-in">
+                          <div className="flex items-center justify-between mb-3 border-b border-slate-700 pb-2 shrink-0">
+                             <h2 className="text-sm font-bold text-blue-400">מבדק: שאלה {currentQuestionIndex+1}/{activeQuizQuestions.length}</h2>
+                             <BookOpen className="text-blue-400 w-5 h-5" />
+                          </div>
+                          
+                          <div className="overflow-y-auto custom-scroll pr-1 pb-2 flex-1 flex flex-col">
+                            <h3 className="text-base sm:text-lg font-bold text-slate-100 mb-4">{activeQuizQuestions[currentQuestionIndex].question}</h3>
+                            
+                            <div className="flex flex-col gap-2 shrink-0 mb-4">
+                               {activeQuizQuestions[currentQuestionIndex].options.map((opt, idx) => {
+                                  const isSelected = selectedQuizOption === idx;
+                                  const isCorrect = idx === activeQuizQuestions[currentQuestionIndex].correctIndex;
+                                  const showCorrect = selectedQuizOption !== null && isCorrect;
+                                  const showWrong = selectedQuizOption !== null && isSelected && !isCorrect;
+                                  
+                                  let btnClass = "w-full text-right p-3 border rounded-lg text-sm sm:text-base transition-all duration-200 ";
+                                  if (selectedQuizOption === null) {
+                                      btnClass += "bg-slate-800 border-slate-600 hover:bg-blue-900/40 hover:border-blue-500 text-slate-200";
+                                  } else if (showCorrect) {
+                                      btnClass += "bg-green-900/60 border-green-500 text-green-100 font-bold shadow-[0_0_10px_rgba(34,197,94,0.2)]";
+                                  } else if (showWrong) {
+                                      btnClass += "bg-red-900/60 border-red-500 text-red-100 shadow-[0_0_10px_rgba(239,68,68,0.2)]";
+                                  } else {
+                                      btnClass += "bg-slate-800/40 border-slate-700 text-slate-500 opacity-50 cursor-not-allowed";
+                                  }
+
+                                  return (
+                                    <button 
+                                      key={idx} 
+                                      onClick={() => selectedQuizOption === null && setSelectedQuizOption(idx)} 
+                                      className={btnClass}
+                                      disabled={selectedQuizOption !== null}
+                                    >
+                                      {opt}
+                                    </button>
+                                  )
+                               })}
+                            </div>
+
+                            {selectedQuizOption !== null && (
+                                <div className="mt-auto bg-slate-950/80 p-4 rounded-xl border border-slate-700 animate-slide-bottom shrink-0">
+                                    {selectedQuizOption === activeQuizQuestions[currentQuestionIndex].correctIndex ? (
+                                        <div className="text-green-400 font-bold mb-3 flex items-center justify-center gap-2"><CheckCircle className="w-5 h-5"/> תשובה נכונה!</div>
+                                    ) : (
+                                        <div className="text-red-400 font-bold mb-3 flex items-center justify-center gap-2"><XIcon className="w-5 h-5"/> תשובה שגויה</div>
+                                    )}
+                                    {selectedQuizOption !== activeQuizQuestions[currentQuestionIndex].correctIndex && (
+                                        <div className="text-slate-300 text-xs sm:text-sm text-center mb-4 leading-relaxed">
+                                            התשובה הנכונה:<br/>
+                                            <strong className="text-white mt-1 block">{activeQuizQuestions[currentQuestionIndex].options[activeQuizQuestions[currentQuestionIndex].correctIndex]}</strong>
+                                        </div>
+                                    )}
+                                    <button onClick={handleNextQuizQuestion} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">
+                                        {currentQuestionIndex < activeQuizQuestions.length - 1 ? 'לשאלה הבאה' : 'סיום מבדק'}
+                                    </button>
+                                </div>
+                            )}
+                          </div>
+                        </div>
+
+                      ) : quizCompleted ? (
+                        <div className="flex flex-col items-center justify-center text-center h-full animate-zoom-in p-2">
+                          <CheckCircle className="w-16 h-16 text-green-500 mb-2" />
+                          <h2 className="text-xl font-black mb-2 text-slate-100">הערכה הושלמה</h2>
+                          <div className="text-sm text-slate-300 mb-6">
+                            ציון: <span className="text-2xl font-black text-blue-400 font-mono inline-block ml-1" dir="ltr">{quizScore}/{activeQuizQuestions.length}</span>
+                          </div>
+                          <button onClick={resetGame} className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg">למסך הפתיחה</button>
+                        </div>
+
+                      ) : showFeedback ? (
+                        <div className="flex flex-col h-full animate-slide-bottom">
+                          <h2 className="text-sm font-bold text-blue-400 mb-2 flex items-center gap-1.5 shrink-0"><Activity className="w-4 h-4"/> תוצאות המהלך</h2>
+                          <div className="mb-2 shrink-0">{renderImpactInline(lastChoice.effects)}</div>
+                          <div className="bg-slate-800 p-2.5 rounded border-r-2 border-blue-500 text-xs sm:text-sm text-slate-200 leading-relaxed mb-3 overflow-y-auto custom-scroll">
+                            {lastChoice.feedback}
+                          </div>
+                          <div className="bg-slate-950/60 border border-slate-700 rounded p-3 flex items-start gap-3 mt-auto shrink-0 mb-3">
+                             <BookOpen className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                             <div>
+                               <h3 className="text-[10px] sm:text-xs text-blue-400 uppercase font-mono">הידעת?</h3>
+                               <h4 className="text-xs sm:text-sm font-bold text-slate-200 mb-0.5">{lastChoice.concept.name}</h4>
+                               <p className="text-[10px] sm:text-xs text-slate-400 leading-tight">{lastChoice.concept.desc}</p>
+                             </div>
+                          </div>
+                          <button onClick={nextStage} className="w-full py-3 bg-slate-700 text-white font-bold rounded-lg border border-slate-600 flex justify-center items-center gap-2 shrink-0">
+                            {gender==='M'?'המשך':'המשיכי'} <ChevronLeft className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                      ) : (
+                        <div className="flex flex-col h-full animate-fade-in custom-scroll overflow-y-auto">
+                          <div className="flex items-center gap-3 mb-4 shrink-0">
+                            <div className="p-2 sm:p-3 bg-slate-950 rounded-full border border-slate-800 shrink-0">{currentEvent.icon}</div>
+                            <h2 className="text-lg sm:text-xl font-bold text-slate-100 leading-tight">{currentEvent.title}</h2>
+                          </div>
+                          
+                          <div className="text-sm sm:text-base text-slate-300 leading-relaxed font-serif pr-1 mb-6">
+                            {currentEvent.description}
+                          </div>
+                          
+                          <div className="flex flex-col gap-3 shrink-0 mb-2">
+                            {currentEvent.choices.map((choice, index) => (
+                              <button key={index} onClick={() => handleChoice(choice)} className="w-full text-right p-3 sm:p-4 bg-slate-800/90 border border-slate-600 rounded-lg flex justify-between items-center group active:bg-slate-700 transition-all">
+                                <span className="text-sm sm:text-base font-semibold text-slate-200 leading-snug pl-2">{choice.text}</span>
+                                <ChevronLeft className="w-4 h-4 text-slate-500 shrink-0" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<IranCrisisGame />);
+    </script>
+</body>
+</html>
